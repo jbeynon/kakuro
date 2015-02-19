@@ -1,0 +1,9 @@
+@(message: String)
+
+@main("Welcome to Play Framework") {
+    <div class="well">
+        <h1 id="message">@message</h1>
+    </div>
+    <div id="kakuroTable"></div>
+	<button type="button" onclick="jbeynon.kakuro.KakuroUI().drawTable()">Click me!</button>
+}
