@@ -36,7 +36,7 @@ package object kakuro {
       (across, down)
     }).unzip
 
-    (acrosses.flatten, downs.flatten)
+    (acrosses.flatten.toMap, downs.flatten.toMap)
   }
 
   val sampleGame = {

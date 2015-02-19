@@ -3,6 +3,7 @@
 # ~~~~
 
 GET     /                                            controllers.Application.index()
+GET     /kakuro                                      controllers.Application.kakuro()
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/javascript/js-project-fastopt.js     controllers.ResourceFile.at(file = "/js-project-fastopt.js")
