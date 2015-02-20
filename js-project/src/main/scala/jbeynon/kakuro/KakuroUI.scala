@@ -3,13 +3,15 @@ package jbeynon.kakuro
 import scala.scalajs.js.JSApp
 import scala.scalajs.js.annotation.JSExport
 
-import scalatags.JsDom.all._
-
-import rx._
-
 import org.scalajs.dom
 import dom.document
 import dom.raw.{ Node, KeyboardEvent }
+
+import org.scalajs.jquery.jQuery
+
+import scalatags.JsDom.all._
+
+import rx._
 
 import Framework._
 
@@ -24,29 +26,74 @@ object KakuroUI extends JSApp {
     }
   }
 
-  val mappings = Map(
-    "0" -> (0, true), ")" -> (0, false),
-    "1" -> (1, true), "!" -> (1, false),
-    "2" -> (2, true), "@" -> (2, false),
-    "3" -> (3, true), "#" -> (3, false),
-    "4" -> (4, true), "$" -> (4, false),
-    "5" -> (5, true), "%" -> (5, false),
-    "6" -> (6, true), "^" -> (6, false),
-    "7" -> (7, true), "&" -> (7, false),
-    "8" -> (8, true), "*" -> (8, false),
-    "9" -> (9, true), "(" -> (9, false))
+  var shiftKey = false
 
-  def handleKeypress(e: KeyboardEvent) {
+  val mappings = Map(
+    '1' -> 1, '2' -> 2, '3' -> 3,
+    '4' -> 4, '5' -> 5, '6' -> 6,
+    '7' -> 7, '8' -> 8, '9' -> 9)
+
+  def handleKeyDown(e: KeyboardEvent) {
     val position = Position(e.srcElement.attributes.getNamedItem("data-x").value.toInt, e.srcElement.attributes.getNamedItem("data-y").value.toInt)
 
-    mappings.get(e.charCode.toChar.toString) match {
-      case Some((value, true)) =>
-        game() = game().copy(pens = updateGrid[Int](game().pens, game().board, position, _ => value))
-      case Some((value, false)) =>
-        if (getGrid(game().pencils, game().board, position).contains(value))
-          game() = game().copy(pencils = updateGrid[Set[Int]](game().pencils, game().board, position, _ - value))
-        else
-          game() = game().copy(pencils = updateGrid[Set[Int]](game().pencils, game().board, position, _ + value))
+    e.keyCode match {
+      case 16 => // Shift
+        shiftKey = true
+      case x if mappings.contains(x.toChar) => 
+        mappings(x.toChar) match {
+          case value if shiftKey == false =>
+            game() = game().copy(pens = updateGrid[Int](game().pens, game().board, position, _ => value))
+          case value if shiftKey == true =>
+            if (getGrid(game().pencils, game().board, position).contains(value))
+              game() = game().copy(pencils = updateGrid[Set[Int]](game().pencils, game().board, position, _ - value))
+            else
+              game() = game().copy(pencils = updateGrid[Set[Int]](game().pencils, game().board, position, _ + value))
+        }
+      case 8 => // Backspace
+        game() = game().copy(pens = updateGrid[Int](game().pens, game().board, position, _ => 0))
+      case 38 => // Up
+        val spaces = for {
+          y <- 0 until position.y
+          newPosition = position.copy(y = y)
+          if getGrid(game().board.values, game().board, newPosition) > 0
+        } yield newPosition
+        val newPosition = spaces.lastOption.getOrElse(position)
+        jQuery(s"[data-x='${ newPosition.x }'][data-y='${ newPosition.y }']").focus
+        e.preventDefault
+      case 40 => // Down
+        val spaces = for {
+          y <- position.y + 1 until game().board.size
+          newPosition = position.copy(y = y)
+          if getGrid(game().board.values, game().board, newPosition) > 0
+        } yield newPosition
+        val newPosition = spaces.headOption.getOrElse(position)
+        jQuery(s"[data-x='${ newPosition.x }'][data-y='${ newPosition.y }']").focus
+        e.preventDefault
+      case 37 => // Left
+        val spaces = for {
+          x <- 0 until position.x
+          newPosition = position.copy(x = x)
+          if getGrid(game().board.values, game().board, newPosition) > 0
+        } yield newPosition
+        val newPosition = spaces.lastOption.getOrElse(position)
+        jQuery(s"[data-x='${ newPosition.x }'][data-y='${ newPosition.y }']").focus
+        e.preventDefault
+      case 39 => // Right
+        val spaces = for {
+          x <- position.x + 1 until game().board.size
+          newPosition = position.copy(x = x)
+          if getGrid(game().board.values, game().board, newPosition) > 0
+        } yield newPosition
+        val newPosition = spaces.headOption.getOrElse(position)
+        jQuery(s"[data-x='${ newPosition.x }'][data-y='${ newPosition.y }']").focus
+        e.preventDefault
+      case _ =>
+    }
+  }
+
+  def handleKeyUp(e: KeyboardEvent) {
+    e.keyCode match {
+      case 16 => shiftKey = false
       case _ =>
     }
   }
@@ -76,7 +123,8 @@ object KakuroUI extends JSApp {
                   backgroundColor := "gray"
                 } else {
                   Seq(
-                    onkeypress := handleKeypress _,
+                    onkeydown := handleKeyDown _,
+                    onkeyup := handleKeyUp _,
                     tabindex := 1)
                 }
               )(
